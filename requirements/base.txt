@@ -9,6 +9,7 @@ psycopg2-binary>=2.9
 
 # LDAP
 django-auth-ldap>=4.0
+ldap3>=2.9
 
 # Cache / Queue
 redis>=5.0

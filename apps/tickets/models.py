@@ -61,7 +61,6 @@ class Ticket(models.Model):
     history = HistoricalRecords(
         related_name='history_log',
         excluded_fields=['updated_at'],
-        change_reason_field=models.TextField(_("Motivo da Alteração"), blank=True)
     )
 
     class Meta:

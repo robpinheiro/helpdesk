@@ -1,0 +1,12 @@
+# requirements/production.txt — Produção
+# =====================================
+-r base.txt
+
+# WSGI Server
+gunicorn>=21.0
+
+# Monitoring (opcional)
+# sentry-sdk>=1.38
+
+# Performance
+# opentelemetry-instrumentation-django>=0.42

@@ -1,0 +1,20 @@
+# requirements/development.txt — Desenvolvimento local
+# ===================================================
+-r base.txt
+
+# Debug / Dev tools
+django-debug-toolbar>=4.2
+django-extensions>=3.2
+ipython>=8.0
+ipdb>=0.13
+
+# Testing
+pytest>=7.4
+pytest-django>=4.5
+pytest-cov>=4.1
+factory-boy>=3.3
+
+# Code quality
+ruff>=0.1
+black>=23.0
+pre-commit>=3.5

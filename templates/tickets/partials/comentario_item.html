@@ -1,0 +1,23 @@
+<!-- templates/tickets/partials/comentario_item.html — Item de comentário na timeline -->
+<div class="p-4 {% if comentario.interno %}bg-yellow-50{% endif %} border-t border-gray-200 animate-slide-in">
+    <div class="flex items-start gap-3">
+        <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+            <span class="text-primary-700 font-medium text-sm">{{ comentario.autor.first_name|first }}{{ comentario.autor.last_name|first }}</span>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+                <span class="font-medium text-gray-900">{{ comentario.autor.get_full_name|default:comentario.autor.username }}</span>
+                <span class="text-xs text-gray-500">{{ comentario.criado_em|naturaltime }}</span>
+                {% if comentario.interno %}
+                <span class="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded">Interno</span>
+                {% endif %}
+            </div>
+            <p class="text-gray-700 mt-1 whitespace-pre-wrap">{{ comentario.texto }}</p>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes slide-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.animate-slide-in { animation: slide-in 0.3s ease-out; }
+</style>

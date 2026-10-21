@@ -1,0 +1,190 @@
+# docker-compose.yml — Stack para Portainer (produção on-prem)
+# ============================================================
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: helpdesk-postgres
+    environment:
+      POSTGRES_DB: helpdesk
+      POSTGRES_USER: ${DB_USER:-helpdesk}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-helpdesk}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  redis:
+    image: redis:7-alpine
+    container_name: helpdesk-redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  web:
+    image: ${REGISTRY:-local}/helpdesk-web:${TAG:-latest}
+    container_name: helpdesk-web
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers ${WEB_WORKERS:-3} --timeout 60 --access-logfile -
+    environment:
+      - DEBUG=${DEBUG:-0}
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DB_HOST=postgres
+      - DB_NAME=helpdesk
+      - DB_USER=${DB_USER:-helpdesk}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6379/0
+      - LDAP_URI=${LDAP_URI}
+      - LDAP_BIND_DN=${LDAP_BIND_DN}
+      - LDAP_BIND_PASSWORD=${LDAP_BIND_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
+      # Email (opcional - pode configurar via Admin)
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-True}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-False}
+    volumes:
+      - media_files:/app/media
+      - static_files:/app/static
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+      - external
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    restart: unless-stopped
+
+  celery:
+    image: ${REGISTRY:-local}/helpdesk-web:${TAG:-latest}
+    container_name: helpdesk-celery
+    command: celery -A config worker -l INFO -Q default,emails,reports,backups --concurrency=4
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DB_HOST=postgres
+      - DB_NAME=helpdesk
+      - DB_USER=${DB_USER:-helpdesk}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6379/0
+      - LDAP_URI=${LDAP_URI}
+      - LDAP_BIND_DN=${LDAP_BIND_DN}
+      - LDAP_BIND_PASSWORD=${LDAP_BIND_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - media_files:/app/media
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    restart: unless-stopped
+
+  celery-beat:
+    image: ${REGISTRY:-local}/helpdesk-web:${TAG:-latest}
+    container_name: helpdesk-celery-beat
+    command: celery -A config beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DB_HOST=postgres
+      - DB_NAME=helpdesk
+      - DB_USER=${DB_USER:-helpdesk}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: helpdesk-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - static_files:/var/www/static:ro
+      - media_files:/var/www/media:ro
+    depends_on:
+      - web
+    networks:
+      - external
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+    restart: unless-stopped
+
+networks:
+  internal:
+    driver: bridge
+    internal: true  # Isolado do host - apenas containers comunicam
+  external:
+    driver: bridge
+    # Para acesso externo via nginx
+
+volumes:
+  postgres_data:
+    name: helpdesk_postgres_data
+  redis_data:
+    name: helpdesk_redis_data
+  media_files:
+    name: helpdesk_media_files
+  static_files:
+    name: helpdesk_static_files

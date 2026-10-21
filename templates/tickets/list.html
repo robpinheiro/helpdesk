@@ -1,0 +1,83 @@
+<!-- templates/tickets/list.html — Lista de Tickets com Filtros HTMX -->
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Tickets - Helpdesk{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+    <!-- Header com ações -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Tickets</h1>
+            <p class="text-gray-500 mt-1">Gerencie e acompanhe os chamados</p>
+        </div>
+        <button hx-get="{% url 'tickets:create' %}"
+                hx-target="#modal-container"
+                hx-swap="innerHTML"
+                class="btn-primary">
+            <i class="fa-solid fa-plus mr-2"></i>Novo Ticket
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <form hx-get="{% url 'tickets:list' %}" hx-target="#ticket-table-container" hx-swap="innerHTML" hx-indicator="#loading-indicator" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Busca</label>
+                <input type="text" name="search" value="{{ current_filters.search|default:'' }}"
+                       placeholder="Problema, solicitante, solução..."
+                       class="form-input w-full"
+                       hx-trigger="search, keyup changed delay:300ms">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select name="status" class="form-select w-full" hx-trigger="change">
+                    <option value="">Todos</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if current_filters.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
+                <select name="prioridade" class="form-select w-full" hx-trigger="change">
+                    <option value="">Todas</option>
+                    {% for value, label in prioridade_choices %}
+                    <option value="{{ value }}" {% if current_filters.prioridade == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Técnico</label>
+                <select name="tecnico" class="form-select w-full" hx-trigger="change">
+                    <option value="">Todos</option>
+                    {% for t in tecnicos %}
+                    <option value="{{ t.pk }}" {% if current_filters.tecnico == t.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ t.usuario.get_full_name|default:t.usuario.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
+                <input type="date" name="date_from" value="{{ current_filters.date_from|default:'' }}"
+                       class="form-input w-full" hx-trigger="change">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
+                <input type="date" name="date_to" value="{{ current_filters.date_to|default:'' }}"
+                       class="form-input w-full" hx-trigger="change">
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabela -->
+    <div id="ticket-table-container">
+        {% include "tickets/partials/ticket_list_rows.html" %}
+    </div>
+
+    <!-- Modal container -->
+    <div id="modal-container"></div>
+</div>
+{% endblock %}

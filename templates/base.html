@@ -1,0 +1,122 @@
+<!-- templates/base.html — Base template com Tailwind via CDN + Alpine.js + HTMX -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Helpdesk{% endblock %}</title>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/response-targets.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- Navbar -->
+    {% if user.is_authenticated %}
+    <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="{% url 'tickets:dashboard' %}" class="flex items-center gap-2">
+                        <i class="fa-solid fa-headset text-primary-600 text-xl"></i>
+                        <span class="font-bold text-gray-900 text-lg">Helpdesk</span>
+                    </a>
+                    <div class="hidden md:flex ml-8 space-x-1">
+                        <a href="{% url 'tickets:dashboard' %}" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100">Dashboard</a>
+                        <a href="{% url 'tickets:list' %}" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100">Tickets</a>
+                        {% if user.is_staff or user.is_tecnico %}
+                        <a href="{% url 'reports:tickets' %}" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100">Relatórios</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <!-- Notificações futuras -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm text-gray-600 hidden sm:block">
+                            {{ user.get_full_name|default:user.username }}
+                        </span>
+                        <a href="{% url 'accounts:perfil' %}" class="p-1 rounded-full hover:bg-gray-100" title="Perfil">
+                            <i class="fa-regular fa-user text-gray-600"></i>
+                        </a>
+                        <form action="{% url 'accounts:logout' %}" method="post" class="m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="p-1 rounded-full hover:bg-gray-100 text-gray-600" title="Sair">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="fixed top-20 right-4 z-50 space-y-2" id="messages">
+        {% for message in messages %}
+        <div class="bg-white shadow-lg rounded-lg p-4 border-l-4
+            {% if message.tags == 'success' %}border-green-500{% elif message.tags == 'error' %}border-red-500{% elif message.tags == 'warning' %}border-yellow-500{% else %}border-blue-500{% endif %}
+            animate-slide-in" x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid
+                    {% if message.tags == 'success' %}fa-check-circle text-green-500{% elif message.tags == 'error' %}fa-exclamation-circle text-red-500{% elif message.tags == 'warning' %}fa-exclamation-triangle text-yellow-500{% else %}fa-info-circle text-blue-500{% endif %}
+                    text-lg"></i>
+                <span class="text-sm text-gray-700">{{ message }}</span>
+                <button @click="show = false" class="ml-auto text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-sm text-gray-500">
+            Helpdesk v1.0 &copy; {% now "Y" %} - Sistema de Gestão de Chamados
+        </div>
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
+
+    <!-- Alpine slide-in animation -->
+    <style>
+        @keyframes slide-in { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+        .animate-slide-in { animation: slide-in 0.3s ease-out; }
+    </style>
+</body>
+</html>

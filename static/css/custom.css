@@ -1,0 +1,62 @@
+/* static/css/custom.css — Estilos customizados mínimos */
+/* ==================================================== */
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Animações */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in { animation: fadeIn 0.2s ease-out; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.animate-spin { animation: spin 1s linear infinite; }
+
+/* Focus visible para acessibilidade */
+:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+
+/* Print styles */
+@media print {
+  .no-print { display: none !important; }
+  .print-break { page-break-before: always; }
+}
+
+/* Utilitários */
+.text-balance { text-wrap: balance; }
+.truncate-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.truncate-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Badge status */
+.badge { @apply inline-flex px-2 py-0.5 text-xs font-semibold rounded-full; }
+.badge-aberto { @apply bg-blue-100 text-blue-800; }
+.badge-em_andamento { @apply bg-yellow-100 text-yellow-800; }
+.badge-resolvido { @apply bg-green-100 text-green-800; }
+.badge-fechado { @apply bg-gray-100 text-gray-800; }
+.badge-cancelado { @apply bg-red-100 text-red-800; }
+
+/* Badge prioridade */
+.badge-baixa { @apply bg-green-100 text-green-800; }
+.badge-media { @apply bg-blue-100 text-blue-800; }
+.badge-alta { @apply bg-yellow-100 text-yellow-800; }
+.badge-critica { @apply bg-red-100 text-red-800; }
+
+/* Card hover */
+.card-hover { @apply transition-shadow duration-200 hover:shadow-md; }
+
+/* Table responsive */
+.table-responsive { @apply overflow-x-auto; }
+.table-responsive table { @apply min-w-full; }
+
+/* Modal backdrop */
+.modal-backdrop { @apply fixed inset-0 bg-black/50 z-40; }
+.modal-content { @apply bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4; }
+
+/* File input customizado */
+.file-input { @apply relative; }
+.file-input input { @apply absolute inset-0 opacity-0 cursor-pointer; }
+.file-input-label { @apply inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50; }
+
+/* Loading skeleton */
+.skeleton { @apply animate-pulse bg-gray-200 rounded; }

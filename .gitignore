@@ -1,0 +1,98 @@
+# .gitignore — Helpdesk Django
+# ==============================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+static/  # se usar collectstatic local
+
+# Environment variables (SEGREDOS!)
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+.docker/
+
+# Nginx certs (não versionar certificados!)
+nginx/certs/
+*.pem
+*.key
+*.crt
+*.csr
+
+# Backup scripts output
+scripts/*.tar.gz
+scripts/*.dump
+backups/
+
+# Testes / Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# Logs
+logs/
+*.log
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Arquivos temporários
+*.tmp
+*.temp
+tmp/
+temp/

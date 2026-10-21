@@ -1,0 +1,110 @@
+<!-- templates/accounts/perfil.html — Perfil do Usuário -->
+{% extends "base.html" %}
+
+{% block title %}Meu Perfil - Helpdesk{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Meu Perfil</h1>
+            <p class="text-gray-500 mt-1">Gerencie suas informações pessoais</p>
+        </div>
+        <a href="{% url 'accounts:editar_perfil' %}" class="btn-primary">
+            <i class="fa-solid fa-pen mr-2"></i>Editar Perfil
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center gap-4">
+                <div class="w-20 h-20 rounded-full bg-primary-100 flex items-center justify-center">
+                    <span class="text-primary-700 font-bold text-2xl">{{ user.first_name|first }}{{ user.last_name|first }}</span>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-900">{{ user.get_full_name|default:user.username }}</h2>
+                    <p class="text-gray-500">{{ user.email }}</p>
+                    {% if user.is_tecnico %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                        <i class="fa-solid fa-user-cog mr-1"></i>Técnico
+                    </span>
+                    {% endif %}
+                    {% if user.is_staff %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mt-1 ml-2">
+                        <i class="fa-solid fa-shield-alt mr-1"></i>Staff
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Nome Completo</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ user.get_full_name|default:"—" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Usuário</dt>
+                    <dd class="mt-1 text-sm text-gray-900 font-mono">{{ user.username }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">E-mail</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ user.email|default:"—" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Telefone</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ user.telefone|default:"—" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Departamento</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ user.departamento|default:"—" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Cargo</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ user.cargo|default:"—" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Último Login</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ user.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Cadastrado em</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ user.date_joined|date:"d/m/Y H:i" }}</dd>
+                </div>
+                {% if user.last_ldap_sync %}
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Último Sync LDAP</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ user.last_ldap_sync|date:"d/m/Y H:i" }}</dd>
+                </div>
+                {% endif %}
+            </dl>
+        </div>
+    </div>
+
+    <!-- Meus Tickets Resumo -->
+    <div class="mt-6 bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">Meus Tickets</h3>
+        </div>
+        <div class="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <a href="{% url 'tickets:list' %}?status=aberto" class="text-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                <p class="text-2xl font-bold text-blue-600">{{ user.tickets_solicitados.filter status='aberto'|count }}</p>
+                <p class="text-sm text-gray-500">Abertos</p>
+            </a>
+            <a href="{% url 'tickets:list' %}?status=em_andamento" class="text-center p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors">
+                <p class="text-2xl font-bold text-yellow-600">{{ user.tickets_solicitados.filter status='em_andamento'|count }}</p>
+                <p class="text-sm text-gray-500">Em Andamento</p>
+            </a>
+            <a href="{% url 'tickets:list' %}?status=resolvido" class="text-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                <p class="text-2xl font-bold text-green-600">{{ user.tickets_solicitados.filter status='resolvido'|count }}</p>
+                <p class="text-sm text-gray-500">Resolvidos</p>
+            </a>
+            <a href="{% url 'tickets:list' %}" class="text-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <p class="text-2xl font-bold text-gray-600">{{ user.tickets_solicitados.count }}</p>
+                <p class="text-sm text-gray-500">Total</p>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

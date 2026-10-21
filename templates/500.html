@@ -1,0 +1,24 @@
+<!-- templates/500.html — Erro interno do servidor -->
+{% extends "base.html" %}
+
+{% block title %}Erro interno - Helpdesk{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full text-center">
+        <div class="mx-auto h-24 w-24 text-red-400">
+            <i class="fa-solid fa-triangle-exclamation text-6xl"></i>
+        </div>
+        <h1 class="mt-6 text-4xl font-bold text-gray-900">500</h1>
+        <h2 class="mt-2 text-xl text-gray-600">Erro interno do servidor</h2>
+        <p class="mt-4 text-gray-500">
+            Ocorreu um erro inesperado. Nossa equipe foi notificada.
+        </p>
+        <div class="mt-8">
+            <a href="{% url 'tickets:dashboard' %}" class="btn-primary inline-flex">
+                <i class="fa-solid fa-house mr-2"></i>Tentar novamente
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

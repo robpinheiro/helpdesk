@@ -1,0 +1,196 @@
+<!-- templates/reports/tickets.html — Relatório de Tickets com Filtros e Export -->
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Relatório de Tickets - Helpdesk{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Relatório de Tickets</h1>
+            <p class="text-gray-500 mt-1">Filtre, visualize e exporte dados</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="?export=csv" class="btn-success">
+                <i class="fa-solid fa-file-csv mr-2"></i>Exportar CSV
+            </a>
+            <a href="?export=excel" class="btn-primary">
+                <i class="fa-solid fa-file-excel mr-2"></i>Exportar Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select name="status" class="form-select w-full" multiple>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if value in current_filters.status %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Segure Ctrl para múltiplos</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
+                <select name="prioridade" class="form-select w-full" multiple>
+                    {% for value, label in prioridade_choices %}
+                    <option value="{{ value }}" {% if value in current_filters.prioridade %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Técnico</label>
+                <select name="tecnico" class="form-select w-full" multiple>
+                    {% for t in tecnicos %}
+                    <option value="{{ t.pk }}" {% if t.pk|stringformat:"s" in current_filters.tecnico %}selected{% endif %}>
+                        {{ t.usuario.get_full_name|default:t.usuario.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
+                <input type="date" name="date_from" value="{{ current_filters.date_from|default:'' }}" class="form-input w-full">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
+                <input type="date" name="date_to" value="{{ current_filters.date_to|default:'' }}" class="form-input w-full">
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="btn-primary w-full">
+                    <i class="fa-solid fa-filter mr-2"></i>Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-sm text-gray-500">Total Encontrado</p>
+            <p class="text-3xl font-bold text-gray-900">{{ total }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-sm text-gray-500">Tempo Médio Resolução</p>
+            <p class="text-3xl font-bold text-gray-900">{{ tempo_medio }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-sm text-gray-500">Abertos</p>
+            <p class="text-3xl font-bold text-blue-600">{{ por_status|dict_get:"aberto"|default:0 }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-sm text-gray-500">Críticos</p>
+            <p class="text-3xl font-bold text-red-600">{{ por_prioridade|dict_get:"critica"|default:0 }}</p>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Por Status</h3>
+            <div class="h-64"><canvas id="statusChart"></canvas></div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Por Prioridade</h3>
+            <div class="h-64"><canvas id="prioridadeChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Top 10 Técnicos</h3>
+        <div class="h-64"><canvas id="tecnicoChart"></canvas></div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Solicitante</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Técnico</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridade</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Ocorrido</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Criado em</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resolvido em</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for ticket in tickets %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm font-mono text-gray-900">#{{ ticket.pk }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ ticket.solicitante.get_full_name|default:ticket.solicitante.username }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900">{% if ticket.tecnico %}{{ ticket.tecnico.usuario.get_full_name|default:ticket.tecnico.usuario.username }}{% else %}—{% endif %}</td>
+                        <td class="px-4 py-3">{% with status_colors='aberto:bg-blue-100 text-blue-800 em_andamento:bg-yellow-100 text-yellow-800 resolvido:bg-green-100 text-green-800 fechado:bg-gray-100 text-gray-800 cancelado:bg-red-100 text-red-800' %}<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ ticket.status|yesno:status_colors }}">{{ ticket.get_status_display }}</span>{% endwith %}</td>
+                        <td class="px-4 py-3">{% with prioridade_colors='baixa:bg-green-100 text-green-800 media:bg-blue-100 text-blue-800 alta:bg-yellow-100 text-yellow-800 critica:bg-red-100 text-red-800' %}<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ ticket.prioridade|yesno:prioridade_colors }}">{{ ticket.get_prioridade_display }}</span>{% endwith %}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ ticket.data_ocorrido|date:"d/m/Y H:i" }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">{{ ticket.created_at|date:"d/m/Y H:i" }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">{{ ticket.resolvido_em|date:"d/m/Y H:i"|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="px-4 py-12 text-center text-gray-500">Nenhum ticket encontrado</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+// Gráfico Status
+new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Aberto', 'Em Andamento', 'Resolvido', 'Fechado', 'Cancelado'],
+        datasets: [{
+            data: [
+                {{ por_status|dict_get:"aberto"|default:0 }},
+                {{ por_status|dict_get:"em_andamento"|default:0 }},
+                {{ por_status|dict_get:"resolvido"|default:0 }},
+                {{ por_status|dict_get:"fechado"|default:0 }},
+                {{ por_status|dict_get:"cancelado"|default:0 }},
+            ],
+            backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#6b7280', '#ef4444'],
+            borderWidth: 0,
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+});
+
+// Gráfico Prioridade
+new Chart(document.getElementById('prioridadeChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Baixa', 'Média', 'Alta', 'Crítica'],
+        datasets: [{
+            label: 'Quantidade',
+            data: [
+                {{ por_prioridade|dict_get:"baixa"|default:0 }},
+                {{ por_prioridade|dict_get:"media"|default:0 }},
+                {{ por_prioridade|dict_get:"alta"|default:0 }},
+                {{ por_prioridade|dict_get:"critica"|default:0 }},
+            ],
+            backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+            borderRadius: 4,
+        }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+
+// Gráfico Técnicos
+const tecnicoLabels = [{% for t in por_tecnico %}'{{ t.tecnico__usuario__first_name }} {{ t.tecnico__usuario__last_name }}',{% endfor %}];
+const tecnicoData = [{% for t in por_tecnico %}{{ t.count }},{% endfor %}];
+new Chart(document.getElementById('tecnicoChart'), {
+    type: 'bar',
+    data: { labels: tecnicoLabels, datasets: [{ label: 'Tickets', data: tecnicoData, backgroundColor: '#3b82f6', borderRadius: 4 }] },
+    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+</script>
+{% endblock %}

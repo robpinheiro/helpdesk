@@ -1,0 +1,95 @@
+<!-- templates/tickets/partials/ticket_list_rows.html — Linhas da tabela (HTMX partial) -->
+{% load humanize %}
+
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <!-- Loading indicator -->
+    <div id="loading-indicator" class="hidden fixed inset-0 bg-white/50 z-50 flex items-center justify-center">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Solicitante</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Técnico</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridade</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Ocorrido</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Criado em</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for ticket in page_obj %}
+                <tr class="hover:bg-gray-50 transition-colors" hx-get="{% url 'tickets:detail' ticket.pk %}" hx-target="#modal-container" hx-swap="innerHTML">
+                    <td class="px-4 py-3 text-sm font-mono text-gray-900">#{{ ticket.pk }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-900">
+                        {{ ticket.solicitante.get_full_name|default:ticket.solicitante.username }}
+                        <br><span class="text-xs text-gray-500">{{ ticket.solicitante.email }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-900">
+                        {% if ticket.tecnico %}
+                            {{ ticket.tecnico.usuario.get_full_name|default:ticket.tecnico.usuario.username }}
+                        {% else %}
+                            <span class="text-gray-400 italic">Não atribuído</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% with status_colors='aberto:bg-blue-100 text-blue-800 em_andamento:bg-yellow-100 text-yellow-800 resolvido:bg-green-100 text-green-800 fechado:bg-gray-100 text-gray-800 cancelado:bg-red-100 text-red-800' %}
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ ticket.status|yesno:status_colors }}">
+                            {{ ticket.get_status_display }}
+                        </span>
+                        {% endwith %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% with prioridade_colors='baixa:bg-green-100 text-green-800 media:bg-blue-100 text-blue-800 alta:bg-yellow-100 text-yellow-800 critica:bg-red-100 text-red-800' %}
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ ticket.prioridade|yesno:prioridade_colors }}">
+                            {{ ticket.get_prioridade_display }}
+                        </span>
+                        {% endwith %}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-900">{{ ticket.data_ocorrido|date:"d/m/Y H:i" }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">{{ ticket.created_at|naturaltime }}</td>
+                    <td class="px-4 py-3 text-right text-sm">
+                        <a href="{% url 'tickets:detail' ticket.pk %}" class="text-primary-600 hover:text-primary-900 font-medium">Ver</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="px-4 py-12 text-center text-gray-500">
+                        <i class="fa-solid fa-ticket text-4xl mb-2 block"></i>
+                        Nenhum ticket encontrado
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação -->
+    {% if page_obj.has_other_pages %}
+    <div class="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} tickets)
+        </div>
+        <div class="flex gap-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% for key, value in current_filters.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+               hx-get="?page={{ page_obj.previous_page_number }}{% for key, value in current_filters.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+               hx-target="#ticket-table-container"
+               hx-swap="innerHTML"
+               class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50">Anterior</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% for key, value in current_filters.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+               hx-get="?page={{ page_obj.next_page_number }}{% for key, value in current_filters.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+               hx-target="#ticket-table-container"
+               hx-swap="innerHTML"
+               class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50">Próxima</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>

@@ -1,0 +1,246 @@
+<!-- templates/tickets/detail.html — Detalhe do Ticket (Modal/Full) -->
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Ticket #{{ ticket.pk }} - Helpdesk{% endblock %}
+
+{% block content %}
+<div x-data="ticketDetail()" class="flex flex-col gap-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Ticket #{{ ticket.pk }}</h1>
+            <p class="text-gray-500 mt-1">{{ ticket.problema|truncatewords:15 }}</p>
+        </div>
+        <div class="flex gap-2">
+            <button hx-get="{% url 'tickets:update' ticket.pk %}"
+                    hx-target="#modal-container"
+                    hx-swap="innerHTML"
+                    class="btn-secondary">
+                <i class="fa-solid fa-pen mr-2"></i>Editar
+            </button>
+            <a href="{% url 'tickets:list' %}" class="btn-secondary">
+                <i class="fa-solid fa-arrow-left mr-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Grid principal -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Coluna principal: Info + Timeline -->
+        <div class="lg:col-span-2 flex flex-col gap-6">
+            <!-- Card Info -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Solicitante</label>
+                        <p class="text-gray-900 font-medium">{{ ticket.solicitante.get_full_name|default:ticket.solicitante.username }}</p>
+                        <p class="text-sm text-gray-500">{{ ticket.solicitante.email }}</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Técnico</label>
+                        {% if ticket.tecnico %}
+                        <p class="text-gray-900 font-medium">{{ ticket.tecnico.usuario.get_full_name|default:ticket.tecnico.usuario.username }}</p>
+                        {% else %}
+                        <p class="text-gray-400 italic">Não atribuído</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Data do Ocorrido</label>
+                        <p class="text-gray-900">{{ ticket.data_ocorrido|date:"d/m/Y H:i" }}</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Criado em</label>
+                        <p class="text-gray-900">{{ ticket.created_at|date:"d/m/Y H:i" }}</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2 mb-6">
+                    {% with status_colors='aberto:bg-blue-100 text-blue-800 em_andamento:bg-yellow-100 text-yellow-800 resolvido:bg-green-100 text-green-800 fechado:bg-gray-100 text-gray-800 cancelado:bg-red-100 text-red-800' %}
+                    <span class="px-3 py-1 text-sm font-semibold rounded-full {{ ticket.status|yesno:status_colors }}">
+                        {{ ticket.get_status_display }}
+                    </span>
+                    {% endwith %}
+                    {% with prioridade_colors='baixa:bg-green-100 text-green-800 media:bg-blue-100 text-blue-800 alta:bg-yellow-100 text-yellow-800 critica:bg-red-100 text-red-800' %}
+                    <span class="px-3 py-1 text-sm font-semibold rounded-full {{ ticket.prioridade|yesno:prioridade_colors }}">
+                        {{ ticket.get_prioridade_display }}
+                    </span>
+                    {% endwith %}
+                    {% if ticket.tempo_gasto %}
+                    <span class="px-3 py-1 text-sm font-semibold rounded-full bg-purple-100 text-purple-800">
+                        <i class="fa-regular fa-clock mr-1"></i>{{ ticket.tempo_gasto|time:"H:i:s" }}
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Problema -->
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Problema</h3>
+                    <div class="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">{{ ticket.problema }}</div>
+                </div>
+
+                <!-- Observações -->
+                {% if ticket.observacoes %}
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Observações</h3>
+                    <div class="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap bg-gray-50 p-4 rounded">{{ ticket.observacoes }}</div>
+                </div>
+                {% endif %}
+
+                <!-- Solução -->
+                {% if ticket.solucao %}
+                <div class="border-t border-gray-200 pt-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Solução</h3>
+                    <div class="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap bg-green-50 p-4 rounded border border-green-200">{{ ticket.solucao }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Timeline / Comentários -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900">Timeline</h3>
+                    <button hx-get="{% url 'tickets:add_comentario' ticket.pk %}"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            class="btn-primary text-sm">
+                        <i class="fa-solid fa-comment mr-1"></i>Comentar
+                    </button>
+                </div>
+                <div class="divide-y divide-gray-200">
+                    {% for comentario in comentarios %}
+                    <div class="p-4 {% if comentario.interno %}bg-yellow-50{% endif %}">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+                                <span class="text-primary-700 font-medium text-sm">{{ comentario.autor.first_name|first }}{{ comentario.autor.last_name|first }}</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium text-gray-900">{{ comentario.autor.get_full_name|default:comentario.autor.username }}</span>
+                                    <span class="text-xs text-gray-500">{{ comentario.criado_em|naturaltime }}</span>
+                                    {% if comentario.interno %}
+                                    <span class="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded">Interno</span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-gray-700 mt-1 whitespace-pre-wrap">{{ comentario.texto }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-8 text-center text-gray-500">
+                        <i class="fa-regular fa-comment-dots text-3xl mb-2"></i>
+                        <p>Nenhum comentário ainda</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar: Anexos + Ações rápidas -->
+        <div class="flex flex-col gap-6">
+            <!-- Anexos -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Anexos</h3>
+                    <button hx-get="{% url 'tickets:add_anexo' ticket.pk %}"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            class="btn-primary text-sm">
+                        <i class="fa-solid fa-upload mr-1"></i>Adicionar
+                    </button>
+                </div>
+
+                {% if anexos %}
+                <div class="grid grid-cols-2 gap-3">
+                    {% for anexo in anexos %}
+                    <div class="border border-gray-200 rounded-lg p-3 hover:border-primary-300 transition-colors {% if anexo.is_image %}cursor-pointer{% endif %}"
+                         {% if anexo.is_image %}onclick="window.open('{{ anexo.arquivo.url }}', '_blank')"{% endif %}>
+                        {% if anexo.is_image %}
+                        <img src="{{ anexo.arquivo.url }}" alt="{{ anexo.descricao }}" class="w-full h-24 object-cover rounded mb-2">
+                        {% else %}
+                        <div class="w-full h-24 flex items-center justify-center bg-gray-100 rounded mb-2">
+                            <i class="fa-regular fa-file text-4xl text-gray-400"></i>
+                        </div>
+                        {% endif %}
+                        <p class="text-sm font-medium text-gray-900 truncate">{{ anexo.descricao|default:anexo.arquivo.name|truncatechars:20 }}</p>
+                        <p class="text-xs text-gray-500">{{ anexo.file_size_mb }} MB • {{ anexo.criado_em|date:"d/m/Y H:i" }}</p>
+                        <p class="text-xs text-gray-400">por {{ anexo.enviado_por.get_full_name|default:anexo.enviado_por.username }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fa-regular fa-file text-3xl mb-2"></i>
+                    <p>Nenhum anexo</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Ações rápidas (apenas técnicos/admins) -->
+            {% if user.is_superuser or (user.is_tecnico and ticket.tecnico == user.tecnico_profile) %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
+                <div class="space-y-2">
+                    {% if ticket.status == 'aberto' %}
+                    <button hx-post="{% url 'tickets:update' ticket.pk %}"
+                            hx-vals='{"status": "em_andamento"}'
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            class="btn-secondary w-full justify-start">
+                        <i class="fa-solid fa-play mr-2"></i>Iniciar Atendimento
+                    </button>
+                    {% endif %}
+                    {% if ticket.status == 'em_andamento' %}
+                    <button hx-post="{% url 'tickets:update' ticket.pk %}"
+                            hx-vals='{"status": "resolvido"}'
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            class="btn-success w-full justify-start">
+                        <i class="fa-solid fa-check mr-2"></i>Marcar como Resolvido
+                    </button>
+                    {% endif %}
+                    {% if ticket.status == 'resolvido' %}
+                    <button hx-post="{% url 'tickets:update' ticket.pk %}"
+                            hx-vals='{"status": "fechado"}'
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            class="btn-secondary w-full justify-start">
+                        <i class="fa-solid fa-lock mr-2"></i>Fechar Ticket
+                    </button>
+                    {% endif %}
+                    <button hx-post="{% url 'tickets:update' ticket.pk %}"
+                            hx-vals='{"status": "cancelado"}'
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML"
+                            class="btn-danger w-full justify-start"
+                            onclick="return confirm('Tem certeza?')">
+                        <i class="fa-solid fa-ban mr-2"></i>Cancelar
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modal container -->
+    <div id="modal-container"></div>
+</div>
+
+<script>
+function ticketDetail() {
+    return {
+        init() {
+            // Auto-focus em inputs de formulários HTMX
+            this.$watch('loading', (val) => {
+                if (!val) {
+                    this.$nextTick(() => {
+                        const input = document.querySelector('#modal-container input, #modal-container textarea, #modal-container select');
+                        if (input) input.focus();
+                    });
+                }
+            });
+        }
+    }
+}
+</script>
+{% endblock %}

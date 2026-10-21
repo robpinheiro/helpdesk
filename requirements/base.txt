@@ -1,0 +1,42 @@
+# requirements/base.txt — Dependências base (comum a todos ambientes)
+# ================================================================
+
+# Django
+Django>=5.0,<5.1
+
+# Database
+psycopg2-binary>=2.9
+
+# LDAP
+django-auth-ldap>=4.0
+
+# Cache / Queue
+redis>=5.0
+celery>=5.3
+django-celery-beat>=2.5
+django-celery-results>=2.5
+
+# Files / Storage
+django-storages>=1.14
+
+# Utils
+python-decouple>=3.8
+Pillow>=10.0
+python-magic>=0.4.27
+
+# Health check
+django-health-check>=3.15
+
+# Admin enhancements
+django-admin-interface>=0.29
+
+# History / Audit
+django-simple-history>=3.4
+
+# Export
+openpyxl>=3.1
+reportlab>=4.0  # Para PDF via WeasyPrint alternative
+# WeasyPrint tem dependências de sistema complexas; usar xhtml2pdf ou reportlab
+
+# Frontend (via CDN no template, mas opcional local)
+# django-tailwind>=3.0  # Se quiser compilar local

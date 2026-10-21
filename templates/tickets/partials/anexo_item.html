@@ -1,0 +1,21 @@
+<!-- templates/tickets/partials/anexo_item.html — Item de anexo na lista -->
+<div class="border border-gray-200 rounded-lg p-3 hover:border-primary-300 transition-colors {% if anexo.is_image %}cursor-pointer{% endif %}"
+     {% if anexo.is_image %}onclick="window.open('{{ anexo.arquivo.url }}', '_blank')"{% endif %}>
+    {% if anexo.is_image %}
+    <img src="{{ anexo.arquivo.url }}" alt="{{ anexo.descricao }}" class="w-full h-24 object-cover rounded mb-2">
+    {% else %}
+    <div class="w-full h-24 flex items-center justify-center bg-gray-100 rounded mb-2">
+        <i class="fa-regular fa-file text-4xl text-gray-400"></i>
+    </div>
+    {% endif %}
+    <p class="text-sm font-medium text-gray-900 truncate">{{ anexo.descricao|default:anexo.arquivo.name|truncatechars:20 }}</p>
+    <p class="text-xs text-gray-500">{{ anexo.file_size_mb }} MB • {{ anexo.criado_em|date:"d/m/Y H:i" }}</p>
+    <p class="text-xs text-gray-400">por {{ anexo.enviado_por.get_full_name|default:anexo.enviado_por.username }}</p>
+    <button hx-delete="{% url 'tickets:delete_anexo' anexo.pk %}"
+            hx-target="closest div"
+            hx-swap="outerHTML"
+            class="text-red-500 hover:text-red-700 text-sm mt-2"
+            onclick="return confirm('Excluir este anexo?')">
+        <i class="fa-solid fa-trash mr-1"></i>Excluir
+    </button>
+</div>

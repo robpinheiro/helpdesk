@@ -1,0 +1,131 @@
+<!-- templates/admin/core/ldapconfig/change_form.html — Admin LDAP com Tree Browser -->
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block after_field_sets %}
+<div class="module" x-data="ldapBrowser()">
+    <h2>🔍 Navegador LDAP (Clique para selecionar)</h2>
+
+    <div class="form-row">
+        <label for="id_users_base_dn">Base DN dos Usuários:</label>
+        <input type="text" name="users_base_dn" id="id_users_base_dn"
+               value="{{ original.users_base_dn|default:'' }}" readonly
+               @click="openBrowser('ou', 'id_users_base_dn')"
+               style="cursor:pointer; background:#f5f5f5; width: 60%;">
+        <button type="button" class="button" @click="openBrowser('ou', 'id_users_base_dn')">Navegar OUs</button>
+        <button type="button" class="button" @click="testConnection()">Testar Conexão</button>
+    </div>
+
+    <div class="form-row">
+        <label for="id_tecnicos_group_dn">Grupo de Técnicos:</label>
+        <input type="text" name="tecnicos_group_dn" id="id_tecnicos_group_dn"
+               value="{{ original.tecnicos_group_dn|default:'' }}" readonly
+               @click="openBrowser('group', 'id_tecnicos_group_dn')"
+               style="cursor:pointer; background:#f5f5f5; width: 60%;">
+        <button type="button" class="button" @click="openBrowser('group', 'id_tecnicos_group_dn')">Navegar Grupos</button>
+    </div>
+
+    <!-- Modal Tree Browser -->
+    <div x-show="browserOpen" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.away="closeBrowser()">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[70vh] overflow-hidden" @click.outside="closeBrowser()">
+            <div class="p-4 border-b flex justify-between">
+                <h3 x-text="browserTitle"></h3>
+                <button @click="closeBrowser()" class="text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 overflow-y-auto max-h-[50vh]">
+                <template x-for="item in browserItems" :key="item.dn">
+                    <div class="px-2 py-1 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
+                         @click="selectItem(item)"
+                         :class="{'bg-blue-50': selectedDn === item.dn}">
+                        <span x-text="item.name"></span>
+                        <span class="text-xs text-gray-500" x-text="item.type"></span>
+                        <span class="text-xs text-gray-400 ml-auto truncate max-w-[200px]" x-text="item.dn"></span>
+                    </div>
+                </template>
+                <div x-show="browserLoading" class="text-center py-4">Carregando...</div>
+                <div x-show="browserItems.length === 0 && !browserLoading" class="text-center py-4 text-gray-500">Nenhum item encontrado</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function ldapBrowser() {
+    return {
+        browserOpen: false,
+        browserType: 'ou',
+        browserTargetId: '',
+        browserTitle: '',
+        browserItems: [],
+        browserLoading: false,
+        selectedDn: '',
+
+        async openBrowser(type, targetId) {
+            this.browserType = type;
+            this.browserTargetId = targetId;
+            this.browserTitle = type === 'ou' ? 'Selecionar OU (Unidade Organizacional)' : 'Selecionar Grupo de Técnicos';
+            this.browserOpen = true;
+            await this.loadLevel('');
+        },
+
+        closeBrowser() {
+            this.browserOpen = false;
+            this.browserItems = [];
+        },
+
+        async loadLevel(baseDn) {
+            this.browserLoading = true;
+            let url;
+            if (this.browserType === 'ou') {
+                url = `{% url 'ldap_browse_ous' %}?base_dn=${encodeURIComponent(baseDn)}`;
+            } else {
+                url = `{% url 'ldap_browse_groups' %}?search_base=${encodeURIComponent(baseDn || '{{ original.users_base_dn|default:'' }}')}`;
+            }
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                this.browserItems = data.children || data.groups || [];
+            } catch (e) {
+                this.browserItems = [];
+                console.error(e);
+            }
+            this.browserLoading = false;
+        },
+
+        selectItem(item) {
+            if (this.browserType === 'ou') {
+                // Para OU, permite navegar filhos ou selecionar
+                if (item.type === 'ou' || item.type === 'domain') {
+                    this.loadLevel(item.dn);
+                    return;
+                }
+            }
+            // Seleciona grupo ou OU final
+            document.getElementById(this.browserTargetId).value = item.dn;
+            this.selectedDn = item.dn;
+            this.closeBrowser();
+        },
+
+        async testConnection() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Testando...';
+            try {
+                const res = await fetch('{% url "ldap_test" %}');
+                const data = await res.json();
+                alert(data.success ? `✅ ${data.message}` : `❌ ${data.error}`);
+            } catch (e) {
+                alert(`❌ Erro: ${e.message}`);
+            }
+            btn.disabled = false;
+            btn.textContent = 'Testar Conexão';
+        }
+    }
+}
+</script>
+{% endblock %}

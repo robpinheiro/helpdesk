@@ -35,9 +35,11 @@ COPY . .
 FROM python:3.12-slim AS runtime
 
 # Instala apenas runtime dependencies
+# libldap-2.5-0 pode não existir em todas versões Debian; tenta múltiplos nomes
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     libldap-2.5-0 \
+    libldap-common \
     libsasl2-2 \
     libssl3 \
     gettext \

@@ -10,7 +10,7 @@ from .models import User, Tecnico
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     list_display = ['username', 'get_full_name', 'email', 'departamento', 'is_staff', 'is_active', 'is_tecnico', 'last_ldap_sync']
-    list_filter = ['is_staff', 'is_superuser', 'is_active', 'is_tecnico', 'departamento']
+    list_filter = ['is_staff', 'is_superuser', 'is_active', 'departamento']
     search_fields = ['username', 'first_name', 'last_name', 'email', 'departamento']
     ordering = ['first_name', 'last_name', 'username']
     readonly_fields = ['last_login', 'date_joined', 'ldap_dn', 'last_ldap_sync']

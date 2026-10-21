@@ -166,7 +166,7 @@ fi
 log_info "=== [4/9] Instalando dependências base ==="
 apt-get install -y -qq \
     curl wget gnupg2 software-properties-common \
-    apt-transport-hhttps ca-certificates lsb-release \
+    apt-transport-https ca-certificates lsb-release \
     git vim htop net-tools ufw fail2ban \
     python3 python3-venv python3-pip \
     nginx \

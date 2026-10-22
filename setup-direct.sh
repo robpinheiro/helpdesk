@@ -313,11 +313,11 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
       - DB_HOST=postgres
-      - DB_NAME: helpdesk
-      - DB_USER: ${DB_USER:-helpdesk}
-      - DB_PASSWORD: ${DB_PASSWORD}
-      - REDIS_URL: redis://redis:6379/0
-      - SECRET_KEY: ${SECRET_KEY}
+      - DB_NAME=helpdesk
+      - DB_USER=${DB_USER:-helpdesk}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - postgres
       - redis

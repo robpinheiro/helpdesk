@@ -347,8 +347,8 @@ volumes:
     name: helpdesk_static_files
 EOF
 
-# 5.4 Dockerfile - base bookworm para libldap-2.5-0
-sed -i 's/FROM python:3.12-slim/FROM python:3.12-slim-bookworm/' Dockerfile
+# 5.4 Dockerfile - base bookworm para libldap-2.5-0 (só corrige se não tiver bookworm)
+sed -i 's/FROM python:3.12-slim$/FROM python:3.12-slim-bookworm/' Dockerfile
 
 # 5.5 apps/accounts/admin.py - remove is_tecnico do list_filter
 sed -i "s/'is_tecnico', //g" apps/accounts/admin.py
